@@ -1,28 +1,26 @@
-# Release v0.2.0
+# HP OMEN Max Linux Brightness Fix v0.2.1
 
-## Focus
+Hotfix release for v0.2.0.
 
-Safety and install reliability improvements.
+## Fixed
 
-## Changes
+- The installer now writes `OMEN_ALLOW_CUSTOM_REG=1` to `/etc/omen-backlight/env`.
+- This fixes the systemd sync service refusing to apply brightness changes with:
 
-- Added a dedicated fixed-purpose C helper (`omen-ec-write`) as a safer alternative to calling `busybox devmem` directly.
-- Kept `busybox devmem` fallback when `gcc` is unavailable.
-- Added stronger installer checks for HP/OMEN DMI data.
-- Added `--dry-run` and `--force` installer options.
-- Centralized configuration in `/etc/omen-backlight/env`.
-- Improved systemd service configuration.
-- Improved uninstall process.
-- Added troubleshooting and hardware compatibility documentation.
+```text
+Custom register refused. Set OMEN_ALLOW_CUSTOM_REG=1 only after validating your ACPI tables.
+```
 
-## Tested hardware
+## Notes
 
-- HP OMEN Max 16-ah0xxx
-- Intel Arrow Lake graphics
-- NVIDIA RTX 5070 Ti Mobile
-- Fedora 44
-- Linux 7.1.x
+If v0.2.0 is already installed and manual brightness commands work but the KDE/GNOME slider does not, either install v0.2.1 or add this line manually to `/etc/omen-backlight/env`:
 
-## Warning
+```bash
+OMEN_ALLOW_CUSTOM_REG=1
+```
 
-This is still a userspace workaround. It writes a hardware register discovered through ACPI reverse engineering. Do not use on unsupported hardware unless you have independently verified the register.
+Then restart the service:
+
+```bash
+sudo systemctl restart omen-backlight-sync.service
+```

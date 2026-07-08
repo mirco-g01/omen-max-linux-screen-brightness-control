@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT="HP OMEN Max Linux brightness fix"
-VERSION="0.2.0"
+VERSION="0.2.1"
 DEFAULT_REG="0xFD400CF5"
 DEFAULT_SOURCE="/sys/class/backlight/acpi_video0"
 INSTALL_PREFIX="/usr/local"
@@ -102,6 +102,9 @@ fi
 cat > "$CONFIG_DIR/env" <<ENVEOF
 # HP OMEN Max Linux brightness workaround configuration
 OMEN_BACKLIGHT_REG=${DEFAULT_REG}
+# Required for the validated custom register used by HP OMEN Max 16-ah0xxx.
+# The helper refuses custom registers unless this is explicitly enabled.
+OMEN_ALLOW_CUSTOM_REG=1
 OMEN_BACKLIGHT_SOURCE=${DEFAULT_SOURCE}
 OMEN_BACKLIGHT_MIN=5
 OMEN_BACKLIGHT_MAX=100

@@ -1,5 +1,8 @@
 # HP OMEN Max Linux Backlight Workaround and Reverse Engineering Notes
 
+> **v0.2.1 hotfix:** fixes the v0.2.0 service configuration regression where manual brightness commands worked but slider/key synchronization failed with `Custom register refused`.
+
+
 This repository documents and works around a Linux backlight control problem observed on an HP OMEN Max 16-ah0xxx laptop with Intel Arrow Lake graphics and an NVIDIA RTX 5070 Ti Mobile GPU in Hybrid / Advanced Optimus mode.
 
 ## Current status
@@ -107,7 +110,7 @@ sudo omen-brightness 80
 
 ## Important safety note
 
-This workaround writes a model-specific physical address. Since v0.2.0 the installer prefers a fixed-purpose C helper and uses `busybox devmem` only as a fallback. It was validated on the tested HP OMEN Max 16-ah0xxx unit, but should not be assumed safe on other machines without ACPI confirmation. The proper final solution should be a kernel driver quirk or firmware-method implementation, not permanent arbitrary userspace physical memory access.
+This workaround writes a model-specific physical address. Since v0.2.1 the installer prefers a fixed-purpose C helper and uses `busybox devmem` only as a fallback. It was validated on the tested HP OMEN Max 16-ah0xxx unit, but should not be assumed safe on other machines without ACPI confirmation. The proper final solution should be a kernel driver quirk or firmware-method implementation, not permanent arbitrary userspace physical memory access.
 
 ## Reverse engineering summary
 
@@ -164,7 +167,7 @@ The final fix should avoid `devmem`. Possible approaches:
 See `docs/upstream-report.md` for a draft bug report.
 
 
-## v0.2.0 safety improvements
+## v0.2.1 safety improvements
 
 - Dedicated fixed-purpose C helper for the validated EC/PWM register.
 - `busybox devmem` retained only as a fallback.
