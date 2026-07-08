@@ -1,0 +1,51 @@
+                        0x59, 
+                        0x5A, 
+                        0x5B, 
+                        0x5C, 
+                        0x5D, 
+                        0x5E, 
+                        0x5F, 
+                        0x60, 
+                        0x61, 
+                        0x62, 
+                        0x63, 
+                        0x64
+                    })
+                }
+            }
+
+            Method (_BCM, 1, NotSerialized)  // _BCM: Brightness Control Method
+            {
+                If (((Arg0 >= Zero) && (Arg0 <= 0x64)))
+                {
+                    \_SB.PC00.GFX0.AINT (One, Arg0)
+                    BRTL = Arg0
+                }
+            }
+
+            Method (_BQC, 0, NotSerialized)  // _BQC: Brightness Query Current
+            {
+                Return (BRTL) /* External reference */
+            }
+
+            Method (_PLD, 0, NotSerialized)  // _PLD: Physical Location of Device
+            {
+                If (CondRefOf (\PLD2))
+                {
+                    Return (PLD2 ())
+                }
+                Else
+                {
+                    Return (DPLD) /* \_SB_.PC00.GFX0.DPLD */
+                }
+            }
+        }
+
+        Method (SDDL, 1, NotSerialized)
+        {
+            NDID++
+            Local0 = (Arg0 & 0x0F0F)
+            Local1 = (0x80000000 | Local0)
+            If ((DIDL == Local0))
+            {
+                Return (Local1)

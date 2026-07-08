@@ -1,0 +1,41 @@
+                /* 0008 */  0xA3, 0xD0, 0xC4, 0x61, 0x77, 0x51, 0x6D, 0xB7,  // ...awQm.
+                /* 0010 */  0x41, 0x41, 0x01, 0x02, 0x21, 0x12, 0x90, 0x05,  // AA..!...
+                /* 0018 */  0x66, 0xD5, 0xD1, 0x11, 0xB2, 0xF0, 0x00, 0xA0,  // f.......
+                /* 0020 */  0xC9, 0x06, 0x29, 0x10, 0x30, 0x30, 0x01, 0x00   // ..).00..
+            })
+            Method (WMAA, 3, Serialized)
+            {
+                Name (TEMP, Zero)
+                CreateByteField (Arg2, Zero, MODF)
+                CreateDWordField (Arg2, 0x04, LEDB)
+                While (One)
+                {
+                    TEMP = Arg1
+                    If ((TEMP == One))
+                    {
+                        If ((MODF == Zero))
+                        {
+                            Return (\_SB.PC00.GFX0.CBL1) /* External reference */
+                        }
+                        ElseIf ((MODF == One))
+                        {
+                            Sleep (0x64)
+                            Local1 = \_SB.PC00.GFX0.CBL1 /* External reference */
+                            Local3 = (Local1 * 0x02)
+                            If ((Local3 == Zero))
+                            {
+                                Local3 += 0x02
+                            }
+
+                            \_SB.PC00.LPCB.ECPW = Local3
+                            Return (Zero)
+                        }
+                        ElseIf ((MODF == 0x02))
+                        {
+                            Return (0x64)
+                        }
+                        Else
+                        {
+                            Return (One)
+                        }
+                    }

@@ -1,0 +1,171 @@
+            NDL6,   32, 
+            NDL7,   32, 
+            NDL8,   32, 
+            ASLP,   32, 
+            TIDX,   32, 
+            CHPD,   32, 
+            CLID,   32, 
+            CDCK,   32, 
+            SXSW,   32, 
+            EVTS,   32, 
+            CNOT,   32, 
+            NRDY,   32, 
+            DDL9,   32, 
+            DD10,   32, 
+            DD11,   32, 
+            DD12,   32, 
+            DD13,   32, 
+            DD14,   32, 
+            DD15,   32, 
+            Offset (0x200), 
+            BCL1,   32, 
+            BCL2,   32, 
+            CBL1,   32, 
+            CBL2,   32, 
+            BCM1,   960, 
+            BCM2,   960, 
+            ARDY,   32, 
+            ASLC,   32, 
+            TCHE,   32, 
+            ALSI,   32, 
+            BCLP,   32, 
+            PFIT,   32, 
+            CBLV,   32, 
+            BCLM,   320, 
+            CPFM,   32, 
+            EPFM,   32, 
+            PLUT,   592, 
+            PFMB,   32, 
+            CCDV,   32, 
+            PCFT,   32, 
+            SROT,   32, 
+            IUER,   32, 
+            FDSS,   64, 
+            FDSP,   32, 
+            STAT,   32, 
+            RVDA,   64, 
+            RVDS,   32, 
+            Offset (0x400), 
+            RVBT,   49152, 
+            PHED,   32, 
+            BDDC,   2048
+        }
+
+        Method (PDRD, 0, NotSerialized)
+        {
+            Return (!DRDY)
+        }
+
+        Method (PSTS, 0, NotSerialized)
+        {
+            If ((CSTS > 0x02))
+            {
+                Sleep (ASLP)
+            }
+
+            Return ((CSTS == 0x03))
+        }
+
+        Method (GNOT, 2, NotSerialized)
+        {
+            If (PDRD ())
+            {
+                Return (One)
+            }
+
+            CEVT = Arg0
+            CSTS = 0x03
+            If ((Arg1 == Zero))
+            {
+                Notify (\_SB.PC00.GFX0, Arg1)
+            }
+
+            If (CondRefOf (HNOT))
+            {
+                HNOT (Arg0)
+            }
+            Else
+            {
+                Notify (\_SB.PC00.GFX0, 0x80) // Status Change
+            }
+
+            Return (Zero)
+        }
+
+        Method (GLID, 1, NotSerialized)
+        {
+            If ((Arg0 == One))
+            {
+                CLID = 0x03
+            }
+            Else
+            {
+                CLID = Arg0
+            }
+
+            If (GNOT (0x02, Zero))
+            {
+                CLID |= 0x80000000
+                Return (One)
+            }
+
+            Return (Zero)
+        }
+
+        Method (GDCK, 1, NotSerialized)
+        {
+            CDCK = Arg0
+            Return (GNOT (0x04, Zero))
+        }
+
+        Method (IUEH, 1, Serialized)
+        {
+            IUER &= 0xC0
+            IUER ^= (One << Arg0)
+            If ((Arg0 <= 0x04))
+            {
+                Return (AINT (0x05, Zero))
+            }
+            Else
+            {
+                Return (AINT (Arg0, Zero))
+            }
+        }
+
+        Method (AINT, 2, NotSerialized)
+        {
+            If (((Arg0 >= 0x05) && (Arg0 <= 0x07)))
+            {
+                Local2 = Zero
+                While ((Local2 < 0xFA))
+                {
+                    Sleep (0x04)
+                    Local2++
+                }
+
+                Return (Zero)
+            }
+
+            If ((Arg0 == One))
+            {
+                BCL1 = ((Arg1 * 0xFF) / 0x64)
+                BCL1 |= 0x80000000
+            }
+
+            Return (Zero)
+        }
+
+        Method (_DSM, 4, Serialized)  // _DSM: Device-Specific Method
+        {
+            If ((Arg0 == ToUUID ("3e5b41c6-eb1d-4260-9d15-c71fbadae414") /* Unknown UUID */))
+            {
+                Switch (ToInteger (Arg2))
+                {
+                    Case (Zero)
+                    {
+                        If ((Arg1 == One))
+                        {
+                            Debug = "iGfx Supported Functions Bitmap "
+                            ADBG ("iGFX Empty Dongle SKU supported")
+                            Local0 = One
+                            If ((EDMX != Zero))

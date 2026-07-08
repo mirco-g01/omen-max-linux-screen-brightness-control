@@ -1,0 +1,66 @@
+                    }
+                }
+
+                If ((RTCD == Zero))
+                {
+                    RTCD = DerefOf (Local2 [Zero])
+                    If ((RTCD == Zero))
+                    {
+                        If ((DerefOf (Local2 [One]) <= Local0))
+                        {
+                            Local0 = Zero
+                            While ((Local0 < DerefOf (Local2 [One])))
+                            {
+                                Local1 [(Local0 + 0x08)] = DerefOf (DerefOf (
+                                    Local2 [0x02]) [Local0])
+                                Local0++
+                            }
+
+                            SNOU = 0x53534150
+                        }
+                        Else
+                        {
+                            RTCD = 0x05
+                        }
+                    }
+                }
+
+                Return (Local1)
+            }
+
+            Method (WMAA, 3, Serialized)
+            {
+                Acquire (MSMT, 0xFFFF)
+                Local0 = WHCM (Arg1, Arg2)
+                Release (MSMT)
+                Return (Local0)
+            }
+
+            Method (WMAC, 3, NotSerialized)
+            {
+                Return (Zero)
+            }
+
+            Method (GWEV, 2, NotSerialized)
+            {
+                If ((WEI1 == Zero))
+                {
+                    WEI1 = Arg0
+                    WED1 = Arg1
+                }
+                Else
+                {
+                    WEI2 = Arg0
+                    WED2 = Arg1
+                }
+
+                Notify (WMID, 0x80) // Status Change
+            }
+
+            Method (_WED, 1, NotSerialized)  // _Wxx: Wake Event, xx=0x00-0xFF
+            {
+                Local0 = Buffer (0x08)
+                    {
+                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00   // ........
+                    }
+                CreateDWordField (Local0, Zero, EVID)

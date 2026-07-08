@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REG="0xFD400CF5"
+STEP=10
+MIN=5
+MAX=100
+BUSYBOX="/usr/bin/busybox"
+HELPER="/usr/local/bin/omen-brightness"
+
+raw=$("$BUSYBOX" devmem "$REG" 8)
+current=$((raw))
+
+case "${1:-}" in
+  up) current=$((current + STEP)) ;;
+  down) current=$((current - STEP)) ;;
+  *) echo "Usage: omen-brightness-step up|down" >&2; exit 1 ;;
+esac
+
+(( current < MIN )) && current=$MIN
+(( current > MAX )) && current=$MAX
+
+exec "$HELPER" "$current"

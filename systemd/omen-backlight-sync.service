@@ -1,0 +1,12 @@
+[Unit]
+Description=HP OMEN Max real backlight sync
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/omen-backlight-sync
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

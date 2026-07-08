@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Synchronize the OS-visible ACPI backlight slider with the real HP OMEN
+# EC/PWM register. This is a userspace workaround for HP OMEN Max systems
+# where acpi_video0 changes but the panel brightness does not.
+
+REG="0xFD400CF5"
+BACKLIGHT="/sys/class/backlight/acpi_video0"
+BUSYBOX="/usr/bin/busybox"
+MIN=5
+MAX=100
+POLL_INTERVAL="0.10"
+
+if [[ ! -r "$BACKLIGHT/brightness" || ! -r "$BACKLIGHT/max_brightness" ]]; then
+  echo "Backlight source not found: $BACKLIGHT" >&2
+  exit 1
+fi
+
+last=""
+
+while true; do
+  cur=$(cat "$BACKLIGHT/brightness")
+  max=$(cat "$BACKLIGHT/max_brightness")
+
+  if [[ "$cur" != "$last" && "$max" -gt 0 ]]; then
+    percent=$(( cur * 100 / max ))
+    (( percent < MIN )) && percent=$MIN
+    (( percent > MAX )) && percent=$MAX
+    hex=$(printf "0x%02x" "$percent")
+    "$BUSYBOX" devmem "$REG" 8 "$hex"
+    last="$cur"
+  fi
+
+  sleep "$POLL_INTERVAL"
+done

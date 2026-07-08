@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# HP OMEN Max 16-ah0xxx Linux backlight workaround.
+# Writes the validated brightness percentage to the EC/PWM byte discovered
+# through ACPI reverse engineering.
+
+REG="0xFD400CF5"
+MIN=5
+MAX=100
+BUSYBOX="/usr/bin/busybox"
+
+value="${1:-}"
+
+if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+  echo "Usage: omen-brightness <5-100>" >&2
+  exit 1
+fi
+
+(( value < MIN )) && value=$MIN
+(( value > MAX )) && value=$MAX
+
+hex=$(printf "0x%02x" "$value")
+exec "$BUSYBOX" devmem "$REG" 8 "$hex"
