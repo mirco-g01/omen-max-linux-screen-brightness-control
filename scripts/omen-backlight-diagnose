@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Collect diagnostic information for HP OMEN Max Linux brightness reports.
+# This script avoids dumping sensitive serial numbers by default.
+
+CONFIG_FILE="/etc/omen-backlight/env"
+HELPER="/usr/local/libexec/omen-backlight/omen-ec-write"
+SERVICE="omen-backlight-sync.service"
+REG_DEFAULT="0xFD400CF5"
+
+section() { printf '\n## %s\n' "$1"; }
+kv() { printf '%-28s %s\n' "$1:" "${2:-unknown}"; }
+cmd_exists() { command -v "$1" >/dev/null 2>&1; }
+run_or_unknown() { "$@" 2>/dev/null || echo "unknown"; }
+
+read_file() {
+  local path="$1"
+  if [[ -r "$path" ]]; then
+    cat "$path" 2>/dev/null || true
+  else
+    echo "unknown"
+  fi
+}
+
+get_config_value() {
+  local key="$1"
+  if [[ -r "$CONFIG_FILE" ]]; then
+    awk -F= -v k="$key" '$1 == k {print $2; exit}' "$CONFIG_FILE"
+  fi
+}
+
+REG="$(get_config_value OMEN_BACKLIGHT_REG)"
+REG="${REG:-$REG_DEFAULT}"
+
+printf '# HP OMEN Max brightness diagnostic report\n'
+printf 'Generated: %s\n' "$(date -Is 2>/dev/null || date)"
+
+section "System"
+kv "Manufacturer" "$(read_file /sys/class/dmi/id/sys_vendor)"
+kv "Product name" "$(read_file /sys/class/dmi/id/product_name)"
+kv "Product version" "$(read_file /sys/class/dmi/id/product_version)"
+kv "BIOS version" "$(read_file /sys/class/dmi/id/bios_version)"
+kv "BIOS date" "$(read_file /sys/class/dmi/id/bios_date)"
+kv "Kernel" "$(uname -r)"
+kv "Command line" "$(cat /proc/cmdline 2>/dev/null || echo unknown)"
+
+section "Graphics"
+if cmd_exists lspci; then
+  lspci -nnk | awk '
+    /VGA compatible controller|3D controller|Display controller/ {print; show=1; next}
+    show && /Kernel driver in use|Kernel modules/ {print; next}
+    show && /^$/ {show=0}
+  '
+else
+  echo "lspci not found"
+fi
+
+section "Backlight devices"
+if compgen -G "/sys/class/backlight/*" >/dev/null; then
+  for dev in /sys/class/backlight/*; do
+    [[ -d "$dev" ]] || continue
+    name="$(basename "$dev")"
+    brightness="$(read_file "$dev/brightness")"
+    max="$(read_file "$dev/max_brightness")"
+    type="$(read_file "$dev/type")"
+    printf '%s brightness=%s max=%s type=%s\n' "$name" "$brightness" "$max" "$type"
+  done
+else
+  echo "No /sys/class/backlight devices found"
+fi
+
+section "omen-backlight configuration"
+if [[ -r "$CONFIG_FILE" ]]; then
+  # This config currently contains no secrets; print it to simplify reports.
+  cat "$CONFIG_FILE"
+else
+  echo "$CONFIG_FILE not found"
+fi
+
+section "Installed commands"
+for c in omen-brightness omen-brightness-step omen-backlight-sync omen-backlight-diagnose; do
+  if cmd_exists "$c"; then
+    printf '%s -> %s\n' "$c" "$(command -v "$c")"
+  else
+    printf '%s -> not found\n' "$c"
+  fi
+done
+
+section "Helper"
+if [[ -x "$HELPER" ]]; then
+  kv "Helper path" "$HELPER"
+  if [[ $EUID -eq 0 ]]; then
+    kv "Current EC value" "$($HELPER 2>/dev/null || echo failed)"
+  else
+    kv "Current EC value" "run with sudo to read"
+  fi
+else
+  kv "Helper path" "not installed"
+fi
+
+section "Service"
+if cmd_exists systemctl; then
+  systemctl status "$SERVICE" --no-pager 2>/dev/null || true
+else
+  echo "systemctl not found"
+fi
+
+section "Recent service logs"
+if cmd_exists journalctl; then
+  journalctl -u "$SERVICE" -n 40 --no-pager 2>/dev/null || true
+else
+  echo "journalctl not found"
+fi
+
+section "Quick checks"
+source_path="$(get_config_value OMEN_BACKLIGHT_SOURCE)"
+source_path="${source_path:-/sys/class/backlight/acpi_video0}"
+allow_custom="$(get_config_value OMEN_ALLOW_CUSTOM_REG)"
+kv "Configured source exists" "$([[ -r "$source_path/brightness" ]] && echo yes || echo no)"
+kv "Configured register" "$REG"
+kv "Custom register enabled" "${allow_custom:-unset}"
+
+printf '\n# End of report\n'

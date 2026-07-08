@@ -1,22 +1,36 @@
 # Changelog
 
-## v0.2.1 - Hotfix
+## v0.3.0-dev
 
-- Fixed installer configuration for the systemd sync service.
-- Automatically writes `OMEN_ALLOW_CUSTOM_REG=1` for the validated HP OMEN Max register path.
-- Fixes a regression where manual `omen-brightness` worked but slider/key synchronization failed with `Custom register refused`.
+Development snapshot focused on diagnostics and compatibility reporting.
+
+### Added
+
+- Added `omen-backlight-diagnose` diagnostic script.
+- Added GitHub hardware compatibility issue template.
+- Added diagnostics documentation.
+- Installer now installs the diagnostic script.
+- Uninstaller now removes the diagnostic script.
+
+### Unchanged
+
+- The working v0.2.1 brightness logic is unchanged.
+- The validated register remains `0xFD400CF5`.
+- The default backlight source remains `/sys/class/backlight/acpi_video0`.
+
+## v0.2.1
+
+Hotfix for v0.2.0.
+
+- Fixed installer service configuration.
+- Automatically writes `OMEN_ALLOW_CUSTOM_REG=1` for the validated custom register.
 
 ## v0.2.0
 
-- Add dedicated C helper for the EC/PWM brightness register.
-- Add safer installer checks and dry-run mode.
-- Add uninstall script improvements.
-- Add centralized configuration file.
-- Add troubleshooting and hardware compatibility documentation.
+- Added dedicated `omen-ec-write` helper.
+- Added safer installer checks.
+- Added centralized configuration.
 
 ## v0.1.0
 
 - Initial public release.
-- Add userspace backlight sync service.
-- Add scripts to mirror OS slider brightness to the real HP OMEN Max backlight register.
-- Add ACPI reverse engineering notes.

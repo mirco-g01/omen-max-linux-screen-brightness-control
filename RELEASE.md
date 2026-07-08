@@ -1,26 +1,15 @@
-# HP OMEN Max Linux Brightness Fix v0.2.1
+# HP OMEN Max Linux Brightness Fix v0.3.0-dev
 
-Hotfix release for v0.2.0.
+Development snapshot for compatibility reporting and diagnostics.
 
-## Fixed
+## Added
 
-- The installer now writes `OMEN_ALLOW_CUSTOM_REG=1` to `/etc/omen-backlight/env`.
-- This fixes the systemd sync service refusing to apply brightness changes with:
+- `omen-backlight-diagnose`
+- GitHub compatibility report issue template
+- Diagnostics documentation
 
-```text
-Custom register refused. Set OMEN_ALLOW_CUSTOM_REG=1 only after validating your ACPI tables.
-```
+## Behavior
 
-## Notes
+The brightness workaround itself is unchanged from v0.2.1.
 
-If v0.2.0 is already installed and manual brightness commands work but the KDE/GNOME slider does not, either install v0.2.1 or add this line manually to `/etc/omen-backlight/env`:
-
-```bash
-OMEN_ALLOW_CUSTOM_REG=1
-```
-
-Then restart the service:
-
-```bash
-sudo systemctl restart omen-backlight-sync.service
-```
+This snapshot is intended for development/testing before a future v0.3.0 release.

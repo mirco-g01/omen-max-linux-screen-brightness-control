@@ -186,3 +186,29 @@ See also:
 - `docs/troubleshooting.md`
 - `docs/hardware-compatibility.md`
 - `CHANGELOG.md`
+
+## Diagnostics and compatibility reports
+
+Development builds after v0.2.1 include a diagnostic command:
+
+```bash
+sudo omen-backlight-diagnose
+```
+
+Use this command when reporting whether the workaround works on another HP OMEN Max laptop.
+The output includes DMI model information, BIOS version, kernel version, GPU devices,
+backlight devices, service status, configuration and recent service logs.
+
+When opening a compatibility issue, include:
+
+- laptop model
+- BIOS version
+- Linux distribution
+- kernel version
+- GPU mode
+- whether manual `omen-brightness` works
+- whether the KDE/GNOME slider or Fn brightness keys work
+- full `sudo omen-backlight-diagnose` output
+
+The register `0xFD400CF5` is currently validated only on the tested HP OMEN Max 16-ah0xxx.
+Do not assume it is valid on unrelated hardware.
