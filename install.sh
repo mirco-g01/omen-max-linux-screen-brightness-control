@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT="HP OMEN Max Linux brightness fix"
-VERSION="0.3.0-dev"
+VERSION="0.2.1"
 DEFAULT_REG="0xFD400CF5"
 DEFAULT_SOURCE="/sys/class/backlight/acpi_video0"
 INSTALL_PREFIX="/usr/local"
@@ -79,7 +79,6 @@ install -d -m 0755 "${INSTALL_PREFIX}/bin"
 install -m 0755 scripts/omen-brightness "${INSTALL_PREFIX}/bin/omen-brightness"
 install -m 0755 scripts/omen-brightness-step "${INSTALL_PREFIX}/bin/omen-brightness-step"
 install -m 0755 scripts/omen-backlight-sync "${INSTALL_PREFIX}/bin/omen-backlight-sync"
-install -m 0755 scripts/omen-backlight-diagnose "${INSTALL_PREFIX}/bin/omen-backlight-diagnose"
 
 log "Installing helper..."
 install -d -m 0755 "$LIBEXEC_DIR"
@@ -121,4 +120,3 @@ log "Installed."
 log "Status: systemctl status omen-backlight-sync.service"
 log "Logs:   journalctl -u omen-backlight-sync.service -f"
 log "Test:   sudo omen-brightness 30 && sudo omen-brightness 80"
-log "Report: sudo omen-backlight-diagnose"

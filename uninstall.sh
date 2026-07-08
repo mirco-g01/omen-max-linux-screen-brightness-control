@@ -11,7 +11,6 @@ systemctl daemon-reload
 rm -f /usr/local/bin/omen-brightness
 rm -f /usr/local/bin/omen-brightness-step
 rm -f /usr/local/bin/omen-backlight-sync
-rm -f /usr/local/bin/omen-backlight-diagnose
 rm -rf /usr/local/libexec/omen-backlight
 
 log "Leaving /etc/omen-backlight in place for audit/reinstall. Remove it manually if desired: sudo rm -rf /etc/omen-backlight"
