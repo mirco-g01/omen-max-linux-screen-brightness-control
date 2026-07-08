@@ -1,21 +1,55 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Set or read the real HP OMEN Max panel brightness register.
+# Usage: omen-brightness [5-100]
+
 REG="${OMEN_BACKLIGHT_REG:-0xFD400CF5}"
 BUSYBOX="${BUSYBOX:-/usr/bin/busybox}"
+HELPER="${OMEN_BACKLIGHT_HELPER:-/usr/local/libexec/omen-backlight/omen-ec-write}"
 MIN="${OMEN_BACKLIGHT_MIN:-5}"
 MAX="${OMEN_BACKLIGHT_MAX:-100}"
 
+read_reg() {
+  if [[ -x "$HELPER" ]]; then
+    "$HELPER"
+  elif [[ -x "$BUSYBOX" ]]; then
+    raw="$($BUSYBOX devmem "$REG" 8)"
+    printf '%d\n' "$((raw))"
+  else
+    echo "No EC helper found. Install helper or busybox." >&2
+    exit 1
+  fi
+}
+
+write_reg() {
+  local value="$1"
+  if [[ -x "$HELPER" ]]; then
+    "$HELPER" "$value" >/dev/null
+  elif [[ -x "$BUSYBOX" ]]; then
+    local hex
+    hex=$(printf "0x%02x" "$value")
+    "$BUSYBOX" devmem "$REG" 8 "$hex" >/dev/null
+  else
+    echo "No EC helper found. Install helper or busybox." >&2
+    exit 1
+  fi
+  echo "$value"
+}
+
 value="${1:-}"
 
-if [[ -z "$value" || ! "$value" =~ ^[0-9]+$ ]]; then
-  echo "Usage: omen-brightness <${MIN}-${MAX}>" >&2
+if [[ -z "$value" ]]; then
+  read_reg
+  exit 0
+fi
+
+if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+  echo "Usage: omen-brightness [${MIN}-${MAX}]" >&2
   exit 1
 fi
 
 (( value < MIN )) && value=$MIN
 (( value > MAX )) && value=$MAX
 
-hex=$(printf "0x%02x" "$value")
-"$BUSYBOX" devmem "$REG" 8 "$hex"
-echo "$value"
+write_reg "$value"

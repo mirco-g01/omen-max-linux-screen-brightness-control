@@ -44,6 +44,15 @@ sudo busybox devmem 0xFD400CF5 8 0x64
 
 ## One-command local install from repository checkout
 
+Recommended install with the dedicated helper:
+
+```bash
+sudo dnf install gcc
+sudo ./install.sh
+```
+
+Fallback install using `busybox devmem` if `gcc` is unavailable:
+
 ```bash
 sudo dnf install busybox
 sudo ./install.sh
@@ -57,12 +66,14 @@ sudo ./uninstall.sh
 
 The installer performs basic DMI safety checks and refuses automatic installation on non-HP/non-OMEN systems unless `OMEN_FORCE_INSTALL=1` is explicitly set.
 
-## Workaround installation
+## Manual workaround installation
+
+The automatic installer is recommended. Manual installation is primarily useful for development.
 
 Install dependencies:
 
 ```bash
-sudo dnf install busybox
+sudo dnf install gcc
 ```
 
 Install scripts:
@@ -96,7 +107,7 @@ sudo omen-brightness 80
 
 ## Important safety note
 
-This workaround uses `busybox devmem` to write a model-specific physical address. It was validated on the tested HP OMEN Max 16-ah0xxx unit, but should not be assumed safe on other machines without ACPI confirmation. The proper final solution should be a kernel driver quirk or firmware-method implementation, not permanent arbitrary userspace physical memory access.
+This workaround writes a model-specific physical address. Since v0.2.0 the installer prefers a fixed-purpose C helper and uses `busybox devmem` only as a fallback. It was validated on the tested HP OMEN Max 16-ah0xxx unit, but should not be assumed safe on other machines without ACPI confirmation. The proper final solution should be a kernel driver quirk or firmware-method implementation, not permanent arbitrary userspace physical memory access.
 
 ## Reverse engineering summary
 
@@ -151,3 +162,24 @@ The final fix should avoid `devmem`. Possible approaches:
 3. Identify the Windows/HP WMI method that correctly updates `ECPW`, and implement that path in Linux instead of writing the memory-mapped byte directly.
 
 See `docs/upstream-report.md` for a draft bug report.
+
+
+## v0.2.0 safety improvements
+
+- Dedicated fixed-purpose C helper for the validated EC/PWM register.
+- `busybox devmem` retained only as a fallback.
+- Installer `--dry-run` mode.
+- Installer `--force` mode for manually validated hardware only.
+- Centralized configuration in `/etc/omen-backlight/env`.
+- Improved troubleshooting documentation.
+
+```bash
+sudo ./install.sh --dry-run
+sudo ./install.sh
+```
+
+See also:
+
+- `docs/troubleshooting.md`
+- `docs/hardware-compatibility.md`
+- `CHANGELOG.md`

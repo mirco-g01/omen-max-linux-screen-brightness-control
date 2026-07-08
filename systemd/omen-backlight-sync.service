@@ -5,6 +5,7 @@ After=multi-user.target
 
 [Service]
 Type=simple
+EnvironmentFile=/etc/omen-backlight/env
 ExecStart=/usr/local/bin/omen-backlight-sync
 Restart=always
 RestartSec=1

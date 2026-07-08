@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REG="${OMEN_BACKLIGHT_REG:-0xFD400CF5}"
-BUSYBOX="${BUSYBOX:-/usr/bin/busybox}"
 STEP="${OMEN_BACKLIGHT_STEP:-10}"
 MIN="${OMEN_BACKLIGHT_MIN:-5}"
 MAX="${OMEN_BACKLIGHT_MAX:-100}"
 
-raw="$($BUSYBOX devmem "$REG" 8)"
-current=$((raw))
+current="$(/usr/local/bin/omen-brightness)"
+[[ "$current" =~ ^[0-9]+$ ]] || current=100
 
 case "${1:-}" in
   up) current=$((current + STEP)) ;;
