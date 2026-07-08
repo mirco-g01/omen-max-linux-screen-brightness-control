@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REG="0xFD400CF5"
-STEP=10
-MIN=5
-MAX=100
-BUSYBOX="/usr/bin/busybox"
-HELPER="/usr/local/bin/omen-brightness"
+REG="${OMEN_BACKLIGHT_REG:-0xFD400CF5}"
+BUSYBOX="${BUSYBOX:-/usr/bin/busybox}"
+STEP="${OMEN_BACKLIGHT_STEP:-10}"
+MIN="${OMEN_BACKLIGHT_MIN:-5}"
+MAX="${OMEN_BACKLIGHT_MAX:-100}"
 
-raw=$("$BUSYBOX" devmem "$REG" 8)
+raw="$($BUSYBOX devmem "$REG" 8)"
 current=$((raw))
 
 case "${1:-}" in
@@ -20,4 +19,4 @@ esac
 (( current < MIN )) && current=$MIN
 (( current > MAX )) && current=$MAX
 
-exec "$HELPER" "$current"
+exec /usr/local/bin/omen-brightness "$current"

@@ -1,32 +1,70 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Synchronize the OS-visible ACPI backlight slider with the real HP OMEN
-# EC/PWM register. This is a userspace workaround for HP OMEN Max systems
-# where acpi_video0 changes but the panel brightness does not.
+# HP OMEN Max Linux backlight sync daemon
+# Mirrors the OS-visible brightness slider to the real EC/PWM byte discovered
+# during ACPI reverse engineering.
 
-REG="0xFD400CF5"
-BACKLIGHT="/sys/class/backlight/acpi_video0"
-BUSYBOX="/usr/bin/busybox"
-MIN=5
-MAX=100
-POLL_INTERVAL="0.10"
+REG="${OMEN_BACKLIGHT_REG:-0xFD400CF5}"
+BUSYBOX="${BUSYBOX:-/usr/bin/busybox}"
+MIN="${OMEN_BACKLIGHT_MIN:-5}"
+MAX="${OMEN_BACKLIGHT_MAX:-100}"
+POLL_INTERVAL="${OMEN_BACKLIGHT_POLL_INTERVAL:-0.10}"
+SOURCE="${OMEN_BACKLIGHT_SOURCE:-}"
 
-if [[ ! -r "$BACKLIGHT/brightness" || ! -r "$BACKLIGHT/max_brightness" ]]; then
-  echo "Backlight source not found: $BACKLIGHT" >&2
+log() { echo "omen-backlight-sync: $*"; }
+err() { echo "omen-backlight-sync: $*" >&2; }
+
+choose_source() {
+  if [[ -n "$SOURCE" ]]; then
+    echo "$SOURCE"
+    return
+  fi
+
+  # Prefer acpi_video0 because KDE/GNOME brightness OSD changed this source on
+  # the tested HP OMEN Max 16-ah0xxx unit.
+  for dev in \
+    /sys/class/backlight/acpi_video0 \
+    /sys/class/backlight/acpi_video1 \
+    /sys/class/backlight/nvidia_wmi_ec_backlight \
+    /sys/class/backlight/intel_backlight; do
+    if [[ -r "$dev/brightness" && -r "$dev/max_brightness" ]]; then
+      echo "$dev"
+      return
+    fi
+  done
+
+  return 1
+}
+
+if [[ ! -x "$BUSYBOX" ]]; then
+  err "busybox not found at $BUSYBOX"
   exit 1
 fi
 
+BACKLIGHT="$(choose_source)" || {
+  err "no usable /sys/class/backlight source found"
+  exit 1
+}
+
+if [[ ! -r "$BACKLIGHT/brightness" || ! -r "$BACKLIGHT/max_brightness" ]]; then
+  err "invalid backlight source: $BACKLIGHT"
+  exit 1
+fi
+
+log "source=$BACKLIGHT register=$REG range=$MIN-$MAX poll=${POLL_INTERVAL}s"
+
 last=""
-
 while true; do
-  cur=$(cat "$BACKLIGHT/brightness")
-  max=$(cat "$BACKLIGHT/max_brightness")
+  cur="$(cat "$BACKLIGHT/brightness")"
+  max="$(cat "$BACKLIGHT/max_brightness")"
 
-  if [[ "$cur" != "$last" && "$max" -gt 0 ]]; then
+  if [[ "$cur" != "$last" && "$max" =~ ^[0-9]+$ && "$max" -gt 0 ]]; then
     percent=$(( cur * 100 / max ))
+
     (( percent < MIN )) && percent=$MIN
     (( percent > MAX )) && percent=$MAX
+
     hex=$(printf "0x%02x" "$percent")
     "$BUSYBOX" devmem "$REG" 8 "$hex"
     last="$cur"

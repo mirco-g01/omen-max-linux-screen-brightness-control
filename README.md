@@ -15,7 +15,7 @@ This is not intended as the final upstream solution. It is a proof-of-cause and 
 - CPU/platform: Intel Core Ultra 7 255HX / Arrow Lake graphics `8086:7d67`
 - dGPU: NVIDIA RTX 5070 Ti Mobile / GB205M `10de:2f58`
 - Firmware mode: Hybrid / Advanced Optimus
-- Distros tested: Fedora 43, Fedora 44
+- Distros tested: Fedora 43, Fedora 44, Ubuntu with newer kernel
 - Kernel tested by reporter: 6.19.x, 7.0.x, 7.1.x
 
 ## Symptoms
@@ -40,6 +40,22 @@ Writing one byte there changes the physical panel brightness immediately:
 sudo busybox devmem 0xFD400CF5 8 0x28
 sudo busybox devmem 0xFD400CF5 8 0x64
 ```
+
+
+## One-command local install from repository checkout
+
+```bash
+sudo dnf install busybox
+sudo ./install.sh
+```
+
+Uninstall:
+
+```bash
+sudo ./uninstall.sh
+```
+
+The installer performs basic DMI safety checks and refuses automatic installation on non-HP/non-OMEN systems unless `OMEN_FORCE_INSTALL=1` is explicitly set.
 
 ## Workaround installation
 

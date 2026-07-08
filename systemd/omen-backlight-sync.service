@@ -1,5 +1,6 @@
 [Unit]
-Description=HP OMEN Max real backlight sync
+Description=HP OMEN Max real backlight sync workaround
+Documentation=https://github.com/kcamporacosta/hp-omen-max-linux-brightness-fix
 After=multi-user.target
 
 [Service]
