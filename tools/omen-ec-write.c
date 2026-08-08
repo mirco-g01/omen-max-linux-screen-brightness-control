@@ -18,7 +18,7 @@
 
 #define DEFAULT_REG 0xFD400CF5UL
 #define DEFAULT_MIN 5
-#define DEFAULT_MAX 100
+#define DEFAULT_MAX 200
 
 static unsigned long parse_ulong_env(const char *name, unsigned long fallback) {
     const char *v = getenv(name);
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
     int min = (int)parse_ulong_env("OMEN_BACKLIGHT_MIN", DEFAULT_MIN);
     int max = (int)parse_ulong_env("OMEN_BACKLIGHT_MAX", DEFAULT_MAX);
     if (min < 0) min = DEFAULT_MIN;
-    if (max > 100) max = DEFAULT_MAX;
+    if (max > 200) max = 200;
     if (min > max) {
         min = DEFAULT_MIN;
         max = DEFAULT_MAX;

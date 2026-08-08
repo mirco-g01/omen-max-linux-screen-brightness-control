@@ -19,11 +19,17 @@ choose_source() {
     return
   fi
 
+  # intel_backlight (native i915/eDP PWM, requires acpi_backlight=native on
+  # Advanced Optimus laptops) is preferred: on hardware where the HP WMI
+  # brightness method is broken (ECPW recomputed from an OpRegion field the
+  # graphics driver never writes), nvidia_wmi_ec_backlight silently accepts
+  # writes that never reach the panel. acpi_video0/1 are last-resort legacy
+  # fallbacks.
   for dev in \
-    /sys/class/backlight/acpi_video0 \
-    /sys/class/backlight/acpi_video1 \
+    /sys/class/backlight/intel_backlight \
     /sys/class/backlight/nvidia_wmi_ec_backlight \
-    /sys/class/backlight/intel_backlight; do
+    /sys/class/backlight/acpi_video0 \
+    /sys/class/backlight/acpi_video1; do
     if [[ -r "$dev/brightness" && -r "$dev/max_brightness" ]]; then
       echo "$dev"
       return

@@ -1,13 +1,14 @@
 # HP OMEN Max Linux Backlight Workaround and Reverse Engineering Notes
 
-> **v0.2.1 hotfix:** fixes the v0.2.0 service configuration regression where manual brightness commands worked but slider/key synchronization failed with `Custom register refused`.
-
+> **v0.3.0:** fixes a register scale bug (`omen-brightness 100` only ever reached ~50% real brightness — the register's native range is 0-200, not 0-100), switches the sync source to `intel_backlight` (requires `acpi_backlight=native`), and adds `install.sh --fix-bootloader` to apply that kernel parameter automatically on systemd-boot. See CHANGELOG.md.
 
 This repository documents and works around a Linux backlight control problem observed on an HP OMEN Max 16-ah0xxx laptop with Intel Arrow Lake graphics and an NVIDIA RTX 5070 Ti Mobile GPU in Hybrid / Advanced Optimus mode.
 
 ## Current status
 
-A userspace workaround is functional: the OS-visible ACPI backlight slider changes `/sys/class/backlight/acpi_video0/brightness`; a small daemon mirrors that percentage to the real EC/PWM byte at physical address `0xFD400CF5`. This makes KDE/GNOME brightness sliders and hotkey OSD changes affect the actual panel brightness.
+A userspace workaround is functional. The kernel must be booted with `acpi_backlight=native` (see `install.sh --fix-bootloader`) so it registers a native `intel_backlight` device for the eDP panel — on this hardware that device has no physical effect on its own, but it's what the desktop's brightness slider and Fn-key OSD actually update. A small daemon mirrors that (purely software) percentage to the real EC/PWM byte at physical address `0xFD400CF5`, which is what actually drives the panel. This makes KDE/GNOME brightness sliders and hotkey OSD changes affect the actual panel brightness.
+
+Without `acpi_backlight=native`, the kernel instead exposes `nvidia_wmi_ec_backlight`, which is known to accept writes that silently never reach the panel (see Reverse engineering summary below) — the sync daemon still runs but nothing physically happens.
 
 This is not intended as the final upstream solution. It is a proof-of-cause and practical workaround while a kernel-side fix is developed.
 
@@ -37,12 +38,14 @@ The real physical brightness register was experimentally identified as:
 0xFD400CF5
 ```
 
-Writing one byte there changes the physical panel brightness immediately:
+Writing one byte there changes the physical panel brightness immediately. **The register's native range is 0-200** (matching the `Local1 * 2` computation in the reverse-engineered firmware path below, where `Local1`/`CBL1` is itself a 0-100 value) — `0xC8` (200) is true 100%, not `0x64` (100):
 
 ```bash
-sudo busybox devmem 0xFD400CF5 8 0x28
-sudo busybox devmem 0xFD400CF5 8 0x64
+sudo busybox devmem 0xFD400CF5 8 0x28   # ~20%
+sudo busybox devmem 0xFD400CF5 8 0xc8   # 100%
 ```
+
+`omen-brightness`/`omen-ec-write` handle this scaling automatically — pass a 0-100 percent to `omen-brightness`, the register gets the doubled 0-200 value.
 
 
 ## One-command local install from repository checkout
@@ -52,6 +55,12 @@ Recommended install with the dedicated helper:
 ```bash
 sudo dnf install gcc
 sudo ./install.sh
+```
+
+If `install.sh` warns that no native `intel_backlight` device was found (common on Advanced Optimus laptops until the kernel is told to use it), re-run with `--fix-bootloader` to patch a systemd-boot entry automatically, then reboot:
+
+```bash
+sudo ./install.sh --fix-bootloader
 ```
 
 Fallback install using `busybox devmem` if `gcc` is unavailable:

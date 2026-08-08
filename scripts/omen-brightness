@@ -11,24 +11,28 @@ MIN="${OMEN_BACKLIGHT_MIN:-5}"
 MAX="${OMEN_BACKLIGHT_MAX:-100}"
 
 read_reg() {
+  local raw
   if [[ -x "$HELPER" ]]; then
-    "$HELPER"
+    raw="$("$HELPER")"
   elif [[ -x "$BUSYBOX" ]]; then
     raw="$($BUSYBOX devmem "$REG" 8)"
-    printf '%d\n' "$((raw))"
+    raw="$((raw))"
   else
     echo "No EC helper found. Install helper or busybox." >&2
     exit 1
   fi
+  # Register's native scale is 0-200; report/accept as 0-100 percent.
+  printf '%d\n' "$((raw / 2))"
 }
 
 write_reg() {
   local value="$1"
+  local physical=$((value * 2))
   if [[ -x "$HELPER" ]]; then
-    "$HELPER" "$value" >/dev/null
+    OMEN_BACKLIGHT_MIN=$((MIN * 2)) OMEN_BACKLIGHT_MAX=$((MAX * 2)) "$HELPER" "$physical" >/dev/null
   elif [[ -x "$BUSYBOX" ]]; then
     local hex
-    hex=$(printf "0x%02x" "$value")
+    hex=$(printf "0x%02x" "$physical")
     "$BUSYBOX" devmem "$REG" 8 "$hex" >/dev/null
   else
     echo "No EC helper found. Install helper or busybox." >&2
