@@ -10,16 +10,17 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now omen-backlight-sync.service
 ```
 
-The sync daemon currently assumes the OS slider source is:
+The sync daemon auto-detects the OS-visible slider source, preferring (in order)
+`intel_backlight`, `nvidia_wmi_ec_backlight`, `acpi_video0`, `acpi_video1`.
+`intel_backlight` only exists when the kernel boots with:
 
 ```text
-/sys/class/backlight/acpi_video0
+acpi_backlight=native
 ```
 
-This matched the tested Fedora/KDE system after booting with:
+See `install.sh --fix-bootloader` to apply that automatically, or the main
+README's Installation section for manual bootloader instructions.
 
-```text
-i915.force_probe=!7d67 xe.force_probe=7d67 acpi_backlight=video modprobe.blacklist=nvidia_wmi_ec_backlight
-```
-
-If a different sysfs backlight source changes on another system, edit `BACKLIGHT=` in `scripts/omen-backlight-sync`.
+If a different sysfs backlight source changes on your system, edit
+`OMEN_BACKLIGHT_SOURCE` in `/etc/omen-backlight/env`, or the priority list in
+`scripts/omen-backlight-sync` directly.

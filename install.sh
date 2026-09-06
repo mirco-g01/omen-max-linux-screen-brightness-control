@@ -39,23 +39,15 @@ detect_source() {
 # Patches a systemd-boot entry to add acpi_backlight=native (and drop the
 # now-redundant/interfering i915.enable_dpcd_backlight=1, if present) so the
 # kernel registers a real, physically-effective intel_backlight device
-# instead of the broken WMI one. Backs up every entry it touches. No-op on
-# GRUB/other bootloaders; prints manual instructions instead.
-fix_bootloader_backlight() {
-  if [[ ! -d /boot/loader/entries ]]; then
-    warn "systemd-boot entries not found under /boot/loader/entries; cannot auto-patch."
-    warn "Add 'acpi_backlight=native' to your bootloader's kernel command line manually"
-    warn "(e.g. GRUB_CMDLINE_LINUX_DEFAULT in /etc/default/grub, then regenerate grub.cfg),"
-    warn "then reboot."
-    return 1
-  fi
-
+# instead of the broken WMI one. Backs up every entry it touches.
+fix_systemd_boot() {
   local entry patched=0
   for entry in /boot/loader/entries/*.conf; do
     [[ -f "$entry" ]] || continue
     grep -q '^options ' "$entry" || continue
     if grep -q 'acpi_backlight=native' "$entry"; then
       log "acpi_backlight=native already present in $entry"
+      patched=1
       continue
     fi
     cp -a "$entry" "${entry}.bak.$(date +%Y%m%d%H%M%S)"
@@ -63,7 +55,79 @@ fix_bootloader_backlight() {
     log "Patched $entry (backup saved alongside). A reboot is required for this to take effect."
     patched=1
   done
-  [[ "$patched" == "1" ]] || warn "No systemd-boot entry needed patching."
+  [[ "$patched" == "1" ]]
+}
+
+# Patches /etc/default/grub to add acpi_backlight=native to
+# GRUB_CMDLINE_LINUX_DEFAULT (dropping i915.enable_dpcd_backlight=1 if
+# present), backs it up, then regenerates grub.cfg with whichever
+# distro-specific command is available. Requires the actual grub.cfg path,
+# which differs across distros (BIOS vs UEFI, Fedora/RHEL vs Debian/Ubuntu vs
+# Arch), so several known locations are tried.
+fix_grub() {
+  local grub_default="/etc/default/grub"
+  [[ -f "$grub_default" ]] || return 1
+
+  if grep -q 'acpi_backlight=native' "$grub_default"; then
+    log "acpi_backlight=native already present in $grub_default"
+  else
+    cp -a "$grub_default" "${grub_default}.bak.$(date +%Y%m%d%H%M%S)"
+    if grep -q '^GRUB_CMDLINE_LINUX_DEFAULT=' "$grub_default"; then
+      sed -i -E 's/ ?i915\.enable_dpcd_backlight=1//g; s/^(GRUB_CMDLINE_LINUX_DEFAULT=")([^"]*)"/\1\2 acpi_backlight=native"/' "$grub_default"
+    else
+      echo 'GRUB_CMDLINE_LINUX_DEFAULT="acpi_backlight=native"' >> "$grub_default"
+    fi
+    log "Patched $grub_default (backup saved alongside)."
+  fi
+
+  local cfg cmd=""
+  for cfg in /boot/grub2/grub.cfg /boot/grub/grub.cfg /boot/efi/EFI/*/grub.cfg; do
+    [[ -f "$cfg" ]] || continue
+    if command -v grub2-mkconfig >/dev/null 2>&1; then
+      cmd="grub2-mkconfig -o $cfg"
+    elif command -v grub-mkconfig >/dev/null 2>&1; then
+      cmd="grub-mkconfig -o $cfg"
+    fi
+    break
+  done
+
+  if [[ -n "$cmd" ]]; then
+    log "Regenerating GRUB config: $cmd"
+    eval "$cmd" || { warn "grub.cfg regeneration failed; run it manually."; return 1; }
+    log "GRUB config regenerated. A reboot is required for this to take effect."
+  elif command -v update-grub >/dev/null 2>&1; then
+    log "Regenerating GRUB config: update-grub"
+    update-grub || { warn "update-grub failed; run it manually."; return 1; }
+    log "GRUB config regenerated. A reboot is required for this to take effect."
+  else
+    warn "Could not find grub2-mkconfig/grub-mkconfig/update-grub or an existing grub.cfg."
+    warn "$grub_default was updated; regenerate grub.cfg manually for your distro, e.g.:"
+    warn "  sudo grub2-mkconfig -o /boot/grub2/grub.cfg   # Fedora/RHEL/openSUSE"
+    warn "  sudo grub-mkconfig -o /boot/grub/grub.cfg     # Arch"
+    warn "  sudo update-grub                              # Debian/Ubuntu"
+    return 1
+  fi
+}
+
+# Dispatches to the detected bootloader. Prints manual instructions for both
+# systemd-boot and GRUB if neither is found (e.g. rEFInd, other loaders).
+fix_bootloader_backlight() {
+  local done=0
+  if [[ -d /boot/loader/entries ]]; then
+    fix_systemd_boot && done=1
+  fi
+  if [[ -f /etc/default/grub ]]; then
+    fix_grub && done=1
+  fi
+  if [[ "$done" == "1" ]]; then
+    return 0
+  fi
+  warn "No supported bootloader config found (looked for systemd-boot entries"
+  warn "under /boot/loader/entries and GRUB's /etc/default/grub)."
+  warn "Add 'acpi_backlight=native' to your bootloader's kernel command line manually,"
+  warn "then reboot. For GRUB: add it to GRUB_CMDLINE_LINUX_DEFAULT in"
+  warn "/etc/default/grub, then regenerate grub.cfg (grub-mkconfig/grub2-mkconfig/update-grub)."
+  return 1
 }
 
 usage() {
@@ -77,8 +141,8 @@ Options:
   --force           allow install on unverified HP/OMEN DMI data
   --dry-run         run checks only, do not install files
   --fix-bootloader  on Advanced Optimus laptops where intel_backlight is
-                    missing, auto-patch a systemd-boot entry with
-                    acpi_backlight=native (backs up the entry first; requires
+                    missing, auto-patch systemd-boot and/or GRUB with
+                    acpi_backlight=native (backs up config first; requires
                     a reboot to take effect)
 USAGE
 }
@@ -136,7 +200,7 @@ if [[ ! -e /sys/class/backlight/intel_backlight ]]; then
   if [[ "$FIX_BOOTLOADER" == "1" ]]; then
     fix_bootloader_backlight
   else
-    warn "Re-run with --fix-bootloader to patch a systemd-boot entry automatically,"
+    warn "Re-run with --fix-bootloader to patch systemd-boot/GRUB automatically,"
     warn "or add acpi_backlight=native to your bootloader config manually, then reboot."
   fi
 fi

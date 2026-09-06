@@ -17,7 +17,7 @@ Possible implementation directions:
    - DMI match HP OMEN Max 16-ah0xxx / board `103c:8d41`.
    - Register a backlight device.
    - Map the ACPI EWRM region safely.
-   - On brightness update, write validated 5-100 value to ECPW.
+   - On brightness update, write validated 0-200 value to ECPW.
 
 2. Intel OpRegion/ASLE handling:
    - Investigate whether mailbox #2 backlight fields BCL1/CBL1 should be consumed by i915/xe.
