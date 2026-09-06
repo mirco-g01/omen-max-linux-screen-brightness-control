@@ -241,6 +241,13 @@ Issues and pull requests are welcome, especially compatibility reports from
 other HP OMEN Max owners — a confirmed second machine is worth a lot given how
 model/firmware-specific the validated register is.
 
+## Support
+
+If this project saved you the trouble of writing it yourself, you can
+support it via [GitHub Sponsors](https://github.com/sponsors/mirco-g01) or
+[Ko-fi](https://ko-fi.com/mircog01). Entirely optional — issues and PRs are
+just as welcome either way.
+
 ## Contact
 
 Open an issue for anything hardware- or bug-specific — it leaves the answer
