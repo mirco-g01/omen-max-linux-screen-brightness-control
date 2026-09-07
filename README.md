@@ -1,4 +1,4 @@
-# omen-max-linux-brightness-control
+# omen-max-linux-screen-brightness-control
 
 Real panel brightness control for the **HP OMEN Max 16-ah0xxx** under Linux, in
 Hybrid / Advanced Optimus mode (Intel iGPU + NVIDIA dGPU). On this hardware the
